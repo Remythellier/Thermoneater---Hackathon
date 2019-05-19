@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>ThermoNeater</title>
+
+	<style>
+		body{
+			margin: 0;
+			overflow: hidden;
+		}
+
+		canvas{
+			width: 100%;
+			height: 100%;
+			background: coral;
+		}
+	</style>
+</head>
+<body>
+
+	<canvas id="myCanvas"></canvas>
+
+	<script src="three.js"></script>
+	<script src="OrbitControls.js"></script>
+	<script>
+		var batteryJSON = {
+			rows: 6,
+			columns: 3,
+			stacks: 2
+		}
+
+		var batteries = []
+
+
+		// creating scene 
+		var renderer = new THREE.WebGLRenderer({canvas: document.getElementById('myCanvas'), antialias: true});
+		renderer.setClearColor(0x000000);
+		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setSize(window.innerWidth, window.innerHeight);
+
+		// camera
+		var camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 4000);
+
+		var controls = new THREE.OrbitControls( camera );
+
+		camera.position.set( 0, 0, 1000);
+		controls.update();
+
+		// scene
+		var scene = new THREE.Scene();
+
+
+		//light
+		var light = new THREE.AmbientLight(0xffffff, 0.5)
+		scene.add(light)
+
+		//light
+		var light1 = new THREE.PointLight(0xffffff, 0.5)
+		scene.add(light1)
+
+		// creating geometry. This loops through the batteryJSON file and creates batteries based on how many columns and rows there are
+
+		for(var i = 0; i < batteryJSON.rows; i++) {
+			for(var j = 0; j < batteryJSON.columns; j++) {
+				for(var k = 0; k < batteryJSON.stacks; k++) {
+				
+					var tempgeometry = new THREE.CylinderGeometry(20, 20, 80, 20, 20);
+					var tempmaterial = new THREE.MeshLambertMaterial();
+					var tempmesh = new THREE.Mesh(tempgeometry, tempmaterial);
+					tempmesh.position.set(i * 70 - (batteryJSON.rows * 70 / 2), -j * 110 + (batteryJSON.columns * 110 / 2), (-k* 70));
+					scene.add(tempmesh)
+					var temp = new Object();
+					temp["mesh"] = tempmesh
+					temp["temperature"] = getRandomInt(10) + 90
+					tempsprite = makeTextSprite(batteries.length + "", {})
+					tempsprite.position.set(i * 70 - (batteryJSON.rows * 70 / 2), -j * 110 + (batteryJSON.columns * 110 / 2) + 50, (-k* 70))
+					scene.add(tempsprite)
+					batteries.push(temp)
+
+				}
+			}
+		}
+		
+		
+		//adding geom to scene
+		//scene.add(mesh);
+
+		// dont touch this!
+		requestAnimationFrame(render);
+
+		//render loop
+		function render(batteryJSON) {
+
+			batteries[16].temperature += .075
+			batteries[12].temperature += .125
+			batteries[14].temperature += .075
+			batteries[8].temperature += .095
+			batteries[20].temperature += .095
+
+
+			// loop through all batteries, show the color based on temp
+			for (var i = 0; i < batteries.length; i++) {
+				batteries[i].mesh.material.color.set(getColorForTemp(batteries[i]))
+			}
+			renderer.render(scene, camera);
+			requestAnimationFrame(render);
+
+			controls.update();
+		}
+
+		function getColorForTemp(battery) {
+			
+			return new THREE.Color(
+				(battery.temperature - 59)/(113 - 59), //r 
+				1 - (battery.temperature - 86)/(113 - 86), //g
+				0 //b
+				) 
+		}
+
+
+		function getRandomInt(max) {
+ 			 return Math.floor(Math.random() * Math.floor(max));
+		}
+
+
+
+		function makeTextSprite( message, parameters )
+    {
+        if ( parameters === undefined ) parameters = {};
+        var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "Arial";
+        var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 96;
+        var borderThickness = parameters.hasOwnProperty("borderThickness") ? parameters["borderThickness"] : 4;
+        var borderColor = parameters.hasOwnProperty("borderColor") ?parameters["borderColor"] : { r:1, g:1, b:1, a:0 };
+        var backgroundColor = parameters.hasOwnProperty("backgroundColor") ?parameters["backgroundColor"] : { r:0, g:200, b:220, a:0 };
+        var textColor = parameters.hasOwnProperty("textColor") ?parameters["textColor"] : { r:255, g:255, b:255, a:1.0 };
+
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        context.font = "Bold " + fontsize + "px " + fontface;
+        var metrics = context.measureText( message );
+        var textWidth = metrics.width;
+
+        context.fillStyle   = "rgba(" + backgroundColor.r + "," + backgroundColor.g + "," + backgroundColor.b + "," + backgroundColor.a + ")";
+        context.strokeStyle = "rgba(" + borderColor.r + "," + borderColor.g + "," + borderColor.b + "," + borderColor.a + ")";
+
+        context.lineWidth = borderThickness;
+        roundRect(context, borderThickness/2, borderThickness/2, (textWidth + borderThickness) * 1.1, fontsize * 1.4 + borderThickness, 8);
+
+        context.fillStyle = "rgba("+textColor.r+", "+textColor.g+", "+textColor.b+", 1.0)";
+        context.fillText( message, borderThickness, fontsize + borderThickness);
+
+        var texture = new THREE.Texture(canvas) 
+        texture.needsUpdate = true;
+
+        var spriteMaterial = new THREE.SpriteMaterial( { map: texture, useScreenCoordinates: false } );
+        var sprite = new THREE.Sprite( spriteMaterial );
+        sprite.scale.set(0.5 * fontsize, 0.25 * fontsize, 0.75 * fontsize);
+        return sprite;  
+    }
+
+    function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+	</script>
+</body>
+</html>
